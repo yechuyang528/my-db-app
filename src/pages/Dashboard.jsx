@@ -7,11 +7,11 @@ import {
 } from '../api';
 
 export default function Dashboard({ onLogout }) {
-  const [path, setPath] = useState([{ id: null, name: '根目录' }]); // 面包屑路径
+  const [path, setPath] = useState([{ id: null, name: '根目录' }]);
   const [folders, setFolders] = useState([]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [editingFile, setEditingFile] = useState(null); // 当前正在编辑的文件
+  const [editingFile, setEditingFile] = useState(null);
   const user = currentUser();
 
   const currentFolderId = path[path.length - 1].id;
@@ -49,7 +49,7 @@ export default function Dashboard({ onLogout }) {
   }
 
   async function handleDeleteFolder(id, name) {
-    if (!confirm(`确定删除文件夹"${name}"及其所有内容吗？`)) return;
+    if (!confirm('确定删除文件夹"' + name + '"及其所有内容吗？')) return;
     try {
       await deleteFolder(id);
       loadContents();
@@ -59,7 +59,7 @@ export default function Dashboard({ onLogout }) {
   }
 
   async function handleDeleteFile(id, name) {
-    if (!confirm(`确定删除文件"${name}"吗？`)) return;
+    if (!confirm('确定删除文件"' + name + '"吗？')) return;
     try {
       await deleteFile(id);
       loadContents();
@@ -126,10 +126,12 @@ export default function Dashboard({ onLogout }) {
   }
 
   if (editingFile) {
-    return <TableEditor
-      file={editingFile}
-      onClose={() => { setEditingFile(null); loadContents(); }}
-    />;
+    return (
+      <TableEditor
+        file={editingFile}
+        onClose={() => { setEditingFile(null); loadContents(); }}
+      />
+    );
   }
 
   return (
@@ -208,7 +210,6 @@ export default function Dashboard({ onLogout }) {
   );
 }
 
-// ===== 表格编辑器组件 =====
 function TableEditor({ file, onClose }) {
   const [data, setData] = useState(() => {
     try { return JSON.parse(file.content); }
@@ -263,7 +264,6 @@ function TableEditor({ file, onClose }) {
     XLSX.writeFile(wb, name.endsWith('.xlsx') ? name : name + '.xlsx');
   }
 
-  // 筛选行（第一行作为表头不参与筛选）
   const filteredRows = filter
     ? data.slice(1).filter(row =>
         row.some(cell => String(cell).toLowerCase().includes(filter.toLowerCase()))
@@ -301,3 +301,157 @@ function TableEditor({ file, onClose }) {
       </div>
 
       <div style={{ padding: 20, overflowX: 'auto' }}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>#</th>
+              {data[0]?.map((cell, c) => (
+                <th key={c} style={styles.th}>
+                  <input
+                    value={cell}
+                    onChange={(e) => updateCell(0, c, e.target.value)}
+                    style={styles.cellInput}
+                  />
+                  <button onClick={() => delCol(c)} style={styles.smallBtn}>×</button>
+                </th>
+              ))}
+              <th><button onClick={addCol} style={styles.smallBtn}>+ 列</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((row, r) => {
+              const realIndex = data.indexOf(row);
+              return (
+                <tr key={realIndex}>
+                  <td style={styles.td}>{realIndex}</td>
+                  {row.map((cell, c) => (
+                    <td key={c} style={styles.td}>
+                      <input
+                        value={cell}
+                        onChange={(e) => updateCell(realIndex, c, e.target.value)}
+                        style={styles.cellInput}
+                      />
+                    </td>
+                  ))}
+                  <td>
+                    <button onClick={() => delRow(realIndex)} style={styles.smallBtn}>×</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <button onClick={addRow} style={{ ...styles.btn, marginTop: 10 }}>+ 添加行</button>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  app: { minHeight: '100vh', background: '#f5f7fa', fontFamily: 'sans-serif' },
+  header: {
+    background: 'white',
+    padding: '15px 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #e0e0e0',
+  },
+  breadcrumb: {
+    padding: '12px 20px',
+    background: 'white',
+    borderBottom: '1px solid #e0e0e0',
+    fontSize: 14,
+  },
+  crumb: { color: '#667eea', cursor: 'pointer', textDecoration: 'underline' },
+  toolbar: { padding: 20, display: 'flex', gap: 10, flexWrap: 'wrap' },
+  btn: {
+    padding: '8px 16px',
+    background: '#667eea',
+    color: 'white',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 14,
+    marginRight: 8,
+  },
+  btnSecondary: {
+    padding: '8px 16px',
+    background: '#f0f0f0',
+    color: '#333',
+    border: '1px solid #ddd',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 14,
+  },
+  empty: { textAlign: 'center', padding: 60, color: '#999' },
+  grid: {
+    padding: 20,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+    gap: 15,
+  },
+  card: {
+    background: 'white',
+    border: '1px solid #e0e0e0',
+    borderRadius: 8,
+    padding: 15,
+    position: 'relative',
+    transition: 'all 0.2s',
+  },
+  cardContent: { cursor: 'pointer', textAlign: 'center' },
+  icon: { fontSize: 40, marginBottom: 8 },
+  name: { fontSize: 13, wordBreak: 'break-all' },
+  delBtn: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 22,
+    height: 22,
+    border: 'none',
+    background: '#fee',
+    color: '#c33',
+    borderRadius: '50%',
+    cursor: 'pointer',
+    fontSize: 16,
+    lineHeight: 1,
+  },
+  nameInput: {
+    fontSize: 18,
+    padding: '6px 10px',
+    border: '1px solid #ddd',
+    borderRadius: 4,
+    width: 300,
+  },
+  input: {
+    padding: '8px 12px',
+    border: '1px solid #ddd',
+    borderRadius: 6,
+    fontSize: 14,
+  },
+  table: { borderCollapse: 'collapse', background: 'white' },
+  th: {
+    border: '1px solid #ddd',
+    padding: 4,
+    background: '#f8f9fa',
+    minWidth: 100,
+  },
+  td: { border: '1px solid #ddd', padding: 0 },
+  cellInput: {
+    width: '100%',
+    padding: '6px 8px',
+    border: 'none',
+    background: 'transparent',
+    fontSize: 13,
+    boxSizing: 'border-box',
+  },
+  smallBtn: {
+    padding: '2px 6px',
+    fontSize: 12,
+    background: '#f0f0f0',
+    border: '1px solid #ddd',
+    borderRadius: 3,
+    cursor: 'pointer',
+    marginLeft: 4,
+  },
+};

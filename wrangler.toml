@@ -1,0 +1,7 @@
+name = "my-db-app"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "my-db-app-db"
+database_id = "fd2d4d0e-42cc-4856-a42c-1d4cbb2803bd"

@@ -1953,3 +1953,301 @@ export default function Root() {
     </>
   );
 }
+function LoginPage({ onLogin }) {
+  const [tab, setTab] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+  const submit = async () => {
+    setErr(""); setOk("");
+    if (!email.trim() || !password.trim()) return setErr("邮箱和密码不能为空");
+    if (!emailValid) return setErr("邮箱格式不正确");
+    if (tab === "register") {
+      if (password.length < 6) return setErr("密码至少 6 位");
+      if (password !== confirm) return setErr("两次密码不一致");
+    }
+    setLoading(true);
+    try {
+      const url = tab === "register" ? "/api/register" : "/api/login";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || (tab === "register" ? "注册失败" : "登录失败"));
+      if (tab === "register") {
+        setOk("注册成功！请登录"); setTab("login"); setPassword(""); setConfirm("");
+      } else {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", email.trim());
+        onLogin(email.trim());
+      }
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---------- 样式 ---------- */
+  const inputStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "11px 14px",
+    border: "1px solid #e5e7eb",
+    borderRadius: 10,
+    fontSize: 14,
+    background: "#fff",
+    color: "#111827",
+    colorScheme: "light",
+    outline: "none",
+    transition: "border-color .15s, box-shadow .15s, background .15s",
+  };
+  const onFocus = (e) => {
+    e.target.style.borderColor = "#6366f1";
+    e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)";
+    e.target.style.background = "#fff";
+  };
+  const onBlur = (e) => {
+    e.target.style.borderColor = "#e5e7eb";
+    e.target.style.boxShadow = "none";
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20,
+      fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #5b6df0 100%)",
+      backgroundSize: "200% 200%",
+      animation: "bgShift 18s ease infinite",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* 背景装饰光斑 */}
+      <div style={{ position: "absolute", width: 500, height: 500, top: -150, left: -150, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", width: 400, height: 400, bottom: -120, right: -100, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)", pointerEvents: "none" }} />
+
+      <style>{`
+        @keyframes bgShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes cardIn {
+          from { opacity: 0; transform: translateY(16px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .login-card {
+          animation: cardIn .45s cubic-bezier(.4,0,.2,1);
+        }
+        .login-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 10px 25px rgba(99,102,241,0.45);
+        }
+        .login-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        .tab-btn:hover {
+          color: #4f46e5 !important;
+        }
+      `}</style>
+
+      <div className="login-card" style={{
+        width: "100%",
+        maxWidth: 400,
+        background: "rgba(255,255,255,0.96)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderRadius: 20,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.6) inset",
+        padding: "40px 32px 32px",
+        border: "1px solid rgba(255,255,255,0.6)",
+        position: "relative",
+        zIndex: 1,
+      }}>
+        {/* Logo / 标题 */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{
+            width: 60, height: 60, margin: "0 auto 12px",
+            borderRadius: 16,
+            background: "linear-gradient(135deg, #667eea, #764ba2)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 30, boxShadow: "0 8px 20px rgba(102,126,234,0.4)",
+          }}>🗄️</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.01em" }}>数据库系统</div>
+          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
+            {tab === "login" ? "登录以访问你的数据库" : "创建账号，开始使用"}
+          </div>
+        </div>
+
+        {/* Tab 切换 */}
+        <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 10, padding: 4, marginBottom: 22 }}>
+          {[{ id: "login", label: "登录" }, { id: "register", label: "注册" }].map(t => (
+            <button
+              key={t.id}
+              className="tab-btn"
+              onClick={() => { setTab(t.id); setErr(""); setOk(""); }}
+              style={{
+                flex: 1,
+                padding: "8px 0",
+                background: tab === t.id ? "#fff" : "transparent",
+                border: "none",
+                borderRadius: 8,
+                color: tab === t.id ? "#4f46e5" : "#6b7280",
+                fontSize: 14,
+                fontWeight: tab === t.id ? 600 : 500,
+                cursor: "pointer",
+                transition: "all .2s",
+                boxShadow: tab === t.id ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 邮箱 */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 12, color: "#374151", marginBottom: 6, fontWeight: 500 }}>邮箱</label>
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && submit()}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            placeholder="name@example.com"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* 密码 */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 12, color: "#374151", marginBottom: 6, fontWeight: 500 }}>密码</label>
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPwd ? "text" : "password"}
+              autoComplete={tab === "register" ? "new-password" : "current-password"}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && submit()}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              placeholder={tab === "register" ? "至少 6 位" : ""}
+              style={{ ...inputStyle, paddingRight: 44 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd(s => !s)}
+              tabIndex={-1}
+              style={{
+                position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                width: 30, height: 30, border: "none", background: "transparent",
+                cursor: "pointer", color: "#9ca3af", fontSize: 15, borderRadius: 6,
+              }}
+              title={showPwd ? "隐藏" : "显示"}
+            >
+              {showPwd ? "🙈" : "👁"}
+            </button>
+          </div>
+        </div>
+
+        {/* 确认密码 */}
+        {tab === "register" && (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 12, color: "#374151", marginBottom: 6, fontWeight: 500 }}>确认密码</label>
+            <input
+              type={showPwd ? "text" : "password"}
+              autoComplete="new-password"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && submit()}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              style={inputStyle}
+            />
+          </div>
+        )}
+
+        {/* 提示 */}
+        {err && (
+          <div style={{
+            marginBottom: 14, padding: "9px 12px",
+            background: "#fef2f2", border: "1px solid #fecaca",
+            borderRadius: 8, fontSize: 13, color: "#991b1b",
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <span>⚠</span>{err}
+          </div>
+        )}
+        {ok && (
+          <div style={{
+            marginBottom: 14, padding: "9px 12px",
+            background: "#f0fdf4", border: "1px solid #bbf7d0",
+            borderRadius: 8, fontSize: 13, color: "#166534",
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <span>✓</span>{ok}
+          </div>
+        )}
+
+        {/* 提交按钮 */}
+        <button
+          className="login-btn"
+          onClick={submit}
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "12px 0",
+            background: loading
+              ? "linear-gradient(135deg, #a5b4fc, #c4b5fd)"
+              : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            color: "#fff",
+            border: "none",
+            borderRadius: 10,
+            fontSize: 15,
+            fontWeight: 600,
+            letterSpacing: "0.02em",
+            cursor: loading ? "not-allowed" : "pointer",
+            boxShadow: "0 4px 14px rgba(99,102,241,0.35)",
+            transition: "transform .15s, box-shadow .2s",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            marginTop: 4,
+          }}
+        >
+          {loading && (
+            <span style={{
+              width: 14, height: 14, borderRadius: "50%",
+              border: "2px solid rgba(255,255,255,0.4)",
+              borderTopColor: "#fff",
+              animation: "spin .7s linear infinite",
+            }} />
+          )}
+          {loading ? "请稍候…" : tab === "login" ? "登 录" : "注 册"}
+        </button>
+
+        {/* 底部辅助 */}
+        <div style={{ textAlign: "center", marginTop: 18, fontSize: 12, color: "#9ca3af" }}>
+          {tab === "login" ? (
+            <>还没有账号？<span onClick={() => { setTab("register"); setErr(""); setOk(""); }} style={{ color: "#6366f1", cursor: "pointer", fontWeight: 500 }}>立即注册</span></>
+          ) : (
+            <>已有账号？<span onClick={() => { setTab("login"); setErr(""); setOk(""); }} style={{ color: "#6366f1", cursor: "pointer", fontWeight: 500 }}>去登录</span></>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1839,120 +1839,8 @@ function renderGroup(g, groups, expandedGroups, setExpandedGroups, hoverGroup, s
     </div>
   );
 }
-function LoginPage({ onLogin }) {
-  const [tab, setTab] = useState("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
 
-  const submit = async () => {
-    setErr(""); setOk("");
-    if (!username.trim() || !password.trim()) return setErr("用户名和密码不能为空");
-    if (tab === "register") {
-      if (password !== confirm) return setErr("两次密码不一致");
-      if (password.length < 6) return setErr("密码至少 6 位");
-    }
-    setLoading(true);
-    try {
-      if (tab === "register") {
-        const res = await fetch("/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: username.trim(), password }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "注册失败");
-        setOk("注册成功！请登录"); setTab("login"); setPassword(""); setConfirm("");
-      } else {
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: username.trim(), password }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "登录失败");
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", username.trim());
-        onLogin(username.trim());
-      }
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f1f5f9", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ width: 360, background: "#fff", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.08)", padding: "36px 28px", border: "1px solid #e5e7eb" }}>
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 36 }}>🗄️</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginTop: 8 }}>数据库系统</div>
-        </div>
-        <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb", marginBottom: 20 }}>
-          {[{ id: "login", label: "登录" }, { id: "register", label: "注册" }].map(t => (
-            <button key={t.id} onClick={() => { setTab(t.id); setErr(""); setOk(""); }}
-              style={{ flex: 1, padding: "8px 0", background: "transparent", border: "none", borderBottom: tab === t.id ? "2px solid #3b82f6" : "2px solid transparent", color: tab === t.id ? "#1d4ed8" : "#6b7280", fontSize: 14, fontWeight: tab === t.id ? 600 : 400, cursor: "pointer", marginBottom: -1 }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {["用户名", "密码"].map((label, idx) => (
-          <div key={label} style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{label}</label>
-            <input type={idx === 1 ? "password" : "text"}
-              value={idx === 0 ? username : password}
-              onChange={e => idx === 0 ? setUsername(e.target.value) : setPassword(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && submit()}
-              placeholder={idx === 1 && tab === "register" ? "至少 6 位" : ""}
-              style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 7, fontSize: 14 }} />
-          </div>
-        ))}
-        {tab === "register" && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 6 }}>确认密码</label>
-            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && submit()}
-              style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 7, fontSize: 14 }} />
-          </div>
-        )}
-        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, fontSize: 13, color: "#991b1b" }}>{err}</div>}
-        {ok  && <div style={{ marginBottom: 12, padding: "8px 12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, fontSize: 13, color: "#166534" }}>{ok}</div>}
-        <button onClick={submit} disabled={loading}
-          style={{ width: "100%", padding: "10px 0", background: loading ? "#93c5fd" : "#3b82f6", color: "#fff", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", marginTop: 4 }}>
-          {loading ? "请稍候…" : tab === "login" ? "登 录" : "注 册"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default function Root() {
-  const [user, setUser] = useState(() => localStorage.getItem("username") || null);
-
-  useEffect(() => {
-    if (!localStorage.getItem("token")) setUser(null);
-  }, []);
-
-  if (!user) return <LoginPage onLogin={(u) => setUser(u)} />;
-
-  return (
-    <>
-      <div style={{ position: "fixed", top: 10, right: 14, zIndex: 9999, display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.95)", border: "1px solid #e5e7eb", borderRadius: 20, padding: "5px 12px 5px 10px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)", fontSize: 13 }}>
-        <span>👤</span>
-        <span style={{ color: "#374151", fontWeight: 500 }}>{user}</span>
-        <button onClick={() => { localStorage.removeItem("token"); localStorage.removeItem("username"); setUser(null); }}
-          style={{ padding: "3px 10px", background: "transparent", border: "1px solid #e5e7eb", borderRadius: 12, color: "#6b7280", fontSize: 12, cursor: "pointer" }}>
-          退出
-        </button>
-      </div>
-      <App />
-    </>
-  );
-}
 function LoginPage({ onLogin }) {
   const [tab, setTab] = useState("login");
   const [email, setEmail] = useState("");
@@ -2251,3 +2139,5 @@ function LoginPage({ onLogin }) {
     </div>
   );
 }
+
+export default App;

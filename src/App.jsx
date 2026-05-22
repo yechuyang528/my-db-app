@@ -768,19 +768,7 @@ function App() {
     setUser(null);
   };
 
-  // 未登录 → 显示登录页;鉴权检查中 → 显示加载占位
-  if (authChecking) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#888", fontFamily: "system-ui, sans-serif", fontSize: 14 }}>
-        正在验证登录状态…
-      </div>
-    );
-  }
-  if (!user) {
-    return <LoginPage onLogin={setUser} />;
-  }
-
-  const [metas, setMetas] = useState({});
+ const [metas, setMetas] = useState({});
   const [counts, setCounts] = useState({});
   const [records, setRecords] = useState([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
@@ -1222,11 +1210,23 @@ function App() {
     else { setSortBy(null); setSortDir("asc"); }
   };
 
-  if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: "#888", fontFamily: "monospace", fontSize: 14 }}>
-      正在加载数据…
-    </div>
-  );
+  // 未登录 → 显示登录页;鉴权检查中 → 显示加载占位
+    if (authChecking) {
+      return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#888", fontFamily: "system-ui, sans-serif", fontSize: 14 }}>
+          正在验证登录状态…
+        </div>
+      );
+    }
+    if (!user) {
+      return <LoginPage onLogin={setUser} />;
+    }
+
+    if (loading) return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: "#888", fontFamily: "monospace", fontSize: 14 }}>
+        正在加载数据…
+      </div>
+    );
 
   const meta = activeDb ? metas[activeDb] : null;
 

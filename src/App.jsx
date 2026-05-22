@@ -10,7 +10,9 @@
  *   4. 文件夹删除按钮显眼化（hover 出现红色"🗑 删除"按钮）
  * ============================================================ */
 
+
 import { useState, useEffect, useMemo, useRef } from "react";
+import { me, login as apiLogin, register as apiRegister, logout as apiLogout } from "./api.js";
 
 /* ============================================================
    常量 & 工具函数
@@ -743,8 +745,41 @@ function renderGroup(g, groups, expandedGroups, setExpandedGroups, hoverGroup, s
 /* ============================================================
    主组件
    ============================================================ */
+function App() {
+  // ===== 认证状态 =====
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
 
-  function App() {
+  useEffect(() => {
+    let cancelled = false;
+    me().then(u => {
+      if (!cancelled) {
+        setUser(u);
+        setAuthChecking(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setAuthChecking(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleLogout = async () => {
+    try { await apiLogout(); } catch {}
+    setUser(null);
+  };
+
+  // 未登录 → 显示登录页;鉴权检查中 → 显示加载占位
+  if (authChecking) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#888", fontFamily: "system-ui, sans-serif", fontSize: 14 }}>
+        正在验证登录状态…
+      </div>
+    );
+  }
+  if (!user) {
+    return <LoginPage onLogin={setUser} />;
+  }
+
   const [metas, setMetas] = useState({});
   const [counts, setCounts] = useState({});
   const [records, setRecords] = useState([]);
@@ -1210,9 +1245,25 @@ function renderGroup(g, groups, expandedGroups, setExpandedGroups, hoverGroup, s
         border: "1px solid #e5e7eb",
         borderRadius: 10,
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        overflow: "hidden"
-      }}>
-        {/* Sidebar */}
+       overflow: "hidden"
+             }}>
+               {/* 退出登录(右上角浮动) */}
+               <button onClick={handleLogout}
+                 title={user.email}
+                 style={{
+                   position: "absolute", top: 10, right: 12, zIndex: 50,
+                   padding: "5px 12px",
+                   background: "rgba(255,255,255,0.95)",
+                   border: "1px solid #e5e7eb",
+                   borderRadius: 6,
+                   cursor: "pointer",
+                   color: "#6b7280",
+                   fontSize: 12,
+                   fontFamily: "system-ui, sans-serif",
+                 }}>
+                 退出({user.email.split("@")[0]})
+               </button>
+               {/* Sidebar */}
         <div style={{ width: sidebarW, borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", flexShrink: 0, background: "#fafafa", position: "relative" }}>
           <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ fontFamily: "monospace", fontSize: 11, color: "#888", letterSpacing: "0.08em", marginBottom: 8 }}>数据库</div>
@@ -1852,34 +1903,23 @@ function LoginPage({ onLogin }) {
   const [ok, setOk] = useState("");
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-
-  const submit = async () => {
+const submit = async () => {
     setErr(""); setOk("");
     if (!email.trim() || !password.trim()) return setErr("邮箱和密码不能为空");
     if (!emailValid) return setErr("邮箱格式不正确");
     if (tab === "register") {
-      if (password.length < 6) return setErr("密码至少 6 位");
+      if (password.length < 8) return setErr("密码至少 8 位");
       if (password !== confirm) return setErr("两次密码不一致");
     }
     setLoading(true);
     try {
-      const url = tab === "register" ? "/api/register" : "/api/login";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: email.trim(), password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || (tab === "register" ? "注册失败" : "登录失败"));
-      if (tab === "register") {
-        setOk("注册成功！请登录"); setTab("login"); setPassword(""); setConfirm("");
-      } else {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", email.trim());
-        onLogin(email.trim());
-      }
+      const data = tab === "register"
+        ? await apiRegister(email.trim(), password)
+        : await apiLogin(email.trim(), password);
+      // 注册和登录后端都会自动种 cookie 并返回 user
+      onLogin(data.user);
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || (tab === "register" ? "注册失败" : "登录失败"));
     } finally {
       setLoading(false);
     }
